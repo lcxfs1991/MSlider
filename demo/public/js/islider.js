@@ -35,12 +35,6 @@ iSlider.prototype._setting = function () {
     this.wrap = opts.dom;
     // your data
     this.data = opts.data;
-
-     // loaded image
-    this.loadedImage = [];
-    // cached first three images of li
-    this.cachedImage = [];
-
     // default type
     this.type = opts.type || 'pic';
     // default slide direction
@@ -66,12 +60,8 @@ iSlider.prototype._setting = function () {
     this.onslideend = opts.onslideend;
     // Callback function when the finger move out of the screen
     this.onslidechange = opts.onslidechange;
-    // Callback function when the tap outer
-    this.tapHandler = opts.tapHandler;
 
-    this.offset = this.offset || 0;
-    this.offsetX = this.offsetX || 0;
-    this.offsetY = this.offsetY || 0;
+    this.offset = this.offset || {};
 
     // looping logic adjust
     if (this.data.length < 2) {
@@ -248,6 +238,8 @@ iSlider.prototype._setUpDamping = function () {
 
 /**
  * render single item html by idx
+ * @param {element} el ..
+ * @param {number}  i  ..
  */
 iSlider.prototype._renderItem = function (el, i) {
     var item;
@@ -314,25 +306,9 @@ iSlider.prototype._renderHTML = function () {
             this._renderItem(li, i - 1 + this.slideIndex);
         }
         outer.appendChild(li);
-
-        // cached first three pics
-        if (li.children[0] && this.type !== 'dom') {
-            var img = new Image();
-            // to support overspread preload
-            if (this.isOverspread) {
-                img.src = li.children[0].style.backgroundImage
-                          .substring(4, li.children[0].style.backgroundImage.length - 1);
-            } else {
-                img.src = li.children[0].src;
-            }
-            this.cachedImage.push(img);
-        }
     }
 
-    if (this.type !== 'dom') {
-        this._preLoadImg();
-    }
-
+    this._initLoadImg();
     // append ul to div#canvas
     if (!this.outer) {
         this.outer = outer;
@@ -340,61 +316,49 @@ iSlider.prototype._renderHTML = function () {
     }
 };
 
-// get image size when the image is ready
-iSlider.prototype._getImgSize = function(img, index) {
-
-    var self = this;
-
-    if (this.data[index].width === undefined
-        || this.data[index].height === undefined) {
-
-        img.onload = function() {
-            self.data[index].height = img.height;
-            self.data[index].width = img.width;
-        };
+/**
+ *  preload img when slideChange
+ */
+iSlider.prototype._preloadImg = function(index) {
+    if (!this.data[index].loaded) {
+        var preloadImg = new Image();
+        preloadImg.src = this.data[index].content;
+        this.data[index].loaded = 1;
     }
 };
 
-// start loading image
-iSlider.prototype._startLoadingImg = function(index, direction) {
-    var dirIndex = (direction === 'right') ? 1 : 0;
-    this.loadedImage[dirIndex] = new Image();
-    this.loadedImage[dirIndex].src = this.data[index].content;
-    this._getImgSize(this.loadedImage[dirIndex], index);
-};
-
-// pre load image
-iSlider.prototype._preLoadImg = function() {
-
+/**
+ *  load extra imgs when renderHTML
+ */
+iSlider.prototype._initLoadImg = function() {
+    var data = this.data;
+    var len = data.length;
     var self = this;
-    var dataLen = this.data.length;
-    var elsLen = this.els.length;
-    var imgCompleteNum = 0;
-    var sliderIndex = [dataLen - 1, 0, 1];
+    if (this.type !== 'dom' && len > 3) {
+        data[0].loaded = 1;
+        data[1].loaded = 1;
+        if (self.isLooping) {
+            data[len - 1].loaded = 1;
+        }
 
-    var isImgComplete = setTimeout(function() {
-        // wait for first three images of li to complete, won't cause duplicate loading
-        for (var i = 0; i < elsLen; i++) {
-            if (self.cachedImage[i] && self.cachedImage[i].complete) {
-                self._getImgSize(self.cachedImage[i], sliderIndex[i]);
-                imgCompleteNum++;
+        setTimeout(function() {
+            if (!data[2].loaded) {
+                var preLeft = new Image();
+                preLeft.src = data[2].content;
+                data[2].loaded = 1
             }
-        }
-        if (imgCompleteNum >= 2) {
-            clearTimeout(isImgComplete);
-            self._startLoadingImg(2, 'right');
-            // check whether to load image from right to left
-            if (dataLen - 2 !== 3 && self.isLooping) {
-                self._startLoadingImg(dataLen - 2, 'left');
+            if (self.isLooping) {
+                var preRight = new Image();
+                preRight.src = data[len - 2].content;
+                data[len - 2].loaded = 1;
             }
-        } else {
-            self._preLoadImg();
-        }
-    }, 200);
+        }, 200);
+    }
 };
 
 /**
  *  slide logical, goto data index
+ *  @param {number} dataIndex the goto index
  */
 iSlider.prototype.slideTo = function (dataIndex) {
     var data = this.data;
@@ -409,15 +373,14 @@ iSlider.prototype.slideTo = function (dataIndex) {
         this._renderItem(nextEls, idx);
     }
 
-    if (n > 0) {
-        loadIndex = (idx + 2 > dataLen - 1) ? ((idx + 2) % dataLen) : (idx + 2);
-        if (this.type !== 'dom') {
-            this._startLoadingImg(loadIndex, 'right');
-        }
-    } else if (this.isLooping) {
-        loadIndex = (idx - 2 < 0) ? (dataLen - 2 + idx) : (idx - 2);
-        if (this.type !== 'dom') {
-            this._startLoadingImg(loadIndex, 'right');
+    // preload when slide
+    if (this.type !== 'dom') {
+        if (n > 0) {
+            loadIndex = (idx + 2 > dataLen - 1) ? ((idx + 2) % dataLen) : (idx + 2);
+            this._preloadImg(loadIndex);
+        } else if (this.isLooping) {
+            loadIndex = (idx - 2 < 0) ? (dataLen - 2 + idx) : (idx - 2);
+            this._preloadImg(loadIndex);
         }
     }
 
@@ -458,7 +421,7 @@ iSlider.prototype.slideTo = function (dataIndex) {
     // slidechange should render new item
     // and change new item style to fit animation
     if (n !== 0) {
-        if ( Math.abs(n) > 1) {
+        if (Math.abs(n) > 1) {
             this._renderItem(els[0], idx - 1);
             this._renderItem(els[2], idx + 1);
         } else if (Math.abs(n) === 1) {
@@ -518,32 +481,31 @@ iSlider.prototype._bindHandler = function() {
         if (isMoving) {
             var len = self.data.length;
             var axis = self.axis;
-            var offsetX = hasTouch ? (evt.targetTouches[0]['pageX'] - self.startX) : (evt['pageX'] - self.startX);
-            var offsetY = hasTouch ? (evt.targetTouches[0]['pageY'] - self.startY) : (evt['pageY'] - self.startY);
-            var offset = (axis === 'X') ? offsetX : offsetY;
-            var otherOffset = (axis === 'X') ? offsetY : offsetX;
+            var otherAxis = (axis === 'X') ? 'Y' : 'X';
+            var offset = {
+                X: hasTouch ? (evt.targetTouches[0].pageX - self.startX) : (evt.pageX - self.startX),
+                Y: hasTouch ? (evt.targetTouches[0].pageY - self.startY) : (evt.pageY - self.startY)
+            };
 
-            if (Math.abs(offset) - Math.abs(otherOffset) > 10) {
+            if (Math.abs(offset[axis]) - Math.abs(offset[otherAxis]) > 10) {
                 evt.preventDefault();
-                self.onslide && self.onslide(offset);
+                self.onslide && self.onslide(offset[axis]);
                 self.log('Event: onslide');
 
                 if (!self.isLooping) {
-                    if (offset > 0 && self.slideIndex === 0 || offset < 0 && self.slideIndex === len - 1) {
-                        offset = self._damping(offset);
+                    if (offset[axis] > 0 && self.slideIndex === 0 || offset[axis] < 0 && self.slideIndex === len - 1) {
+                        offset[axis] = self._damping(offset[axis]);
                     }
                 }
 
                 for (var i = 0; i < 3; i++) {
                     var item = self.els[i];
                     item.style.webkitTransition = 'all 0s';
-                    self._animateFunc(item, axis, self.scale, i, offset);
+                    self._animateFunc(item, axis, self.scale, i, offset[axis]);
                 }
             }
 
             self.offset = offset;
-            self.offsetX = offsetX;
-            self.offsetY = offsetY;
         }
     };
 
@@ -551,31 +513,32 @@ iSlider.prototype._bindHandler = function() {
         isMoving = false;
 
         var offset = self.offset;
+        var axis = self.axis;
         var boundary = self.scale / 2;
         var endTime = new Date().getTime();
 
         // a quick slide time must under 300ms
         // a quick slide should also slide at least 14 px
         boundary = endTime - self.startTime > 300 ? boundary : 14;
-        if (offset >= boundary) {
+        if (offset[axis] >= boundary) {
             self.slideTo(self.slideIndex - 1);
-        } else if (offset < -boundary) {
+        } else if (offset[axis] < -boundary) {
             self.slideTo(self.slideIndex + 1);
         } else {
             self.slideTo(self.slideIndex);
         }
 
         // create tap event if offset < 10
-        if (Math.abs(self.offsetX) < 10 && Math.abs(self.offsetY) < 10) {
+        if (Math.abs(self.offset.X) < 10 && Math.abs(self.offset.Y) < 10) {
             self.tapEvt = document.createEvent('Event');
-            self.tapEvt.initEvent('isliderTap', true, true);
+            self.tapEvt.initEvent('tap', true, true);
 
             if (!evt.target.dispatchEvent(self.tapEvt)) {
                 evt.preventDefault();
             }
         }
 
-        self.offset = self.offsetX = self.offsetY = 0;
+        self.offset.X = self.offset.Y = 0;
         self.isAutoplay && self.play();
         self.onslideend && self.onslideend(self.slideIndex);
         self.log('Event: afterslide');
@@ -591,10 +554,29 @@ iSlider.prototype._bindHandler = function() {
     outer.addEventListener(startEvt, startHandler);
     outer.addEventListener(moveEvt, moveHandler);
     outer.addEventListener(endEvt, endHandler);
-    outer.addEventListener('isliderTap', self.tapHandler);
     window.addEventListener('orientationchange', orientationchangeHandler);
 };
 
+/**
+*  simple event delegate method
+*  @param {String}   evtType   event name
+*  @param {String}   selector  the simple css selector like jQuery
+*  @param {function} callback  event callback
+*/
+iSlider.prototype.bind = function(evtType, selector, callback) {
+    function handle(e){
+        var evt = window.event ? window.event : e;
+        var target = evt.target;
+        if(('#' + target.id) === selector || target.className.indexOf(selector.match(/\w+/)[0]) != -1 || target.tagName.toLowerCase() === selector){
+            callback.call(target);
+        }
+    }
+    this.outer.addEventListener(evtType, handle, false);
+}
+
+/**
+* reset & rerender
+*/
 iSlider.prototype.reset = function() {
     this.pause();
     this._setting();
@@ -624,6 +606,8 @@ iSlider.prototype.pause = function() {
 
 /**
 * plugin extend
+* @param {Object} plugin need to be set up
+* @param {Object} main iSlider prototype
 */
 iSlider.prototype.extend = function(plugin, main) {
     if (!main) {
