@@ -1,8 +1,8 @@
 #iSlider，Smooth slider for webapps
 
-####[iSlider English Official Page](http://be-fe.github.io/iSlider/index_en.html)
-####[iSlider 中文官网](http://be-fe.github.io/iSlider/index.html)
-####[iSlider 中文README](https://github.com/BE-FE/iSlider/blob/master/README_Chinese.md)
+####[iSlider Official Page](http://be-fe.github.io/iSlider/index_en.html)
+####[iSlider 官网](http://be-fe.github.io/iSlider/index.html)
+####[iSlider 说明](https://github.com/BE-FE/iSlider/blob/master/README_Chinese.md)
 ####[iSlider Example](http://be-fe.github.io/iSlider/demo/)
 
 iSlider is a high performance，dependency free, mobile-platform javascript slider.
@@ -15,6 +15,7 @@ It features:
 * Damping effect, Infinite Looping, Autometic sliding and Vertical/Horizontal Sliding can be configured.
 * Support desktop gesture which is convenient for testing.
 * Support image preloader to improve user experience.
+* Support image zoomIn and zoomOut.
 
 ##iSlider Mobile Demo
 
@@ -28,7 +29,7 @@ The best way to learn the iSlider is by looking at the demos. In the archive you
 
 Before you start, you need to prepare some data for iSlider:
 
-``` javascript
+````
 var data = [{
 	height: 414,
 	width: 300,
@@ -42,7 +43,7 @@ var data = [{
 	width: 300,
  	content: "imgs/3.jpg",
 }];
-```
+````
 
 HTML structure you only need to prepare is :
 	
@@ -76,7 +77,7 @@ That's it.
 ##Configure the iSlider
 Besides the basic ways you can do with iSlider, you can customized the features we provide. For example, if you prefers to put dom elements on the list, you can change the data array like this:
 
-``` javascript
+````
 var data = [{
 	'height' : '100%',
 	'width' : '100%',
@@ -90,7 +91,7 @@ var data = [{
 	'width' : '100%',
 	'content' : '<div><h1>Page2</h1><h2>This is Page2</h2><p>Page2 is pretty awsome</p><div>'
 }];
-```
+````
 If you hope to implement the effects mentioned in introduction part, you can:
 
 	<script type="text/javascript">
@@ -106,6 +107,8 @@ If you hope to implement the effects mentioned in introduction part, you can:
     </script>
 
 ##Understand The iSlider
+the demo is only basic usage of iSlider，you can get more from [WIKI](https://github.com/BE-FE/iSlider/wiki/Notices).
+
 Here provides a clear description of what options you are able to manipulate:
 <table>
 <thead>
@@ -195,8 +198,23 @@ Here provides a clear description of what options you are able to manipulate:
 		<td>Boolean (true | fasle)</td>
 		<td>Decide whether to cover the whole browser screen or not</td>
 	</tr>
+	</tr>
+		<tr>
+		<td>initIndex</td>
+		<td>Number</td>
+		<td>init content index in data</td>
+	</tr>
+	</tr>
+		<tr>
+		<td>useZoom</td>
+		<td>Boolean (true | fasle)</td>
+		<td>Decide whether to open picture zoomIn and zoomOut</td>
+	</tr>
 </tbody>
 </table>
+##Contact us
+if you have any questions or find any bugs, please post issues to tell us.
+[Feedback](https://github.com/BE-FE/iSlider/issues/new?title=Bug%3A%20&body=)
 
 ##License (MIT)
 
